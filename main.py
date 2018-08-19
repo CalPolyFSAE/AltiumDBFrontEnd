@@ -1,32 +1,18 @@
-import json
-import urllib.request
-import urllib.parse
-import octopart
+import mysql.connector
+
 
 def main():
-    results = octopart.match(['ERJ-2GE0R00X'])
-    print(results)
-    results = octopart.search(['NA'])
-    # url = 'https://octopart.com/api/v3/parts/search?'
-    # args = [
-    #     (
-    #     ('offers.seller.name', 'Digi-Key'),
-    #     ('sortby', 'part["offers"][0]["prices"]["USD"][1][1]')
-    # ]
-    # url += '&' + urllib.parse.urlencode(args)
-    # url += '&apikey=2a67f89b'
-
-    # print(url)
-    # data = urllib.request.urlopen(url).read()
-    # response = json.loads(data)
-    # print(response['hits'])
-
-    # for result in response['results']:
-    #     part = result['item']
-    #     print(part['offers'][0]['prices']['USD'][1][1])
-    #     print(part['brand']['name'],part['mpn'])
-
-
-
+    # Creating main connection
+    mydb = mysql.connector.connect(
+        host="altium.cyyn3lqbjhax.us-east-2.rds.amazonaws.com",
+        user="cpracing",
+        passwd="formulasae",
+        database="Altium"
+    )
+    print(mydb)
+    mydb.close()
+    a=mydb.num_rows
+    print(1)
+    
 if __name__ == "__main__":
     main()

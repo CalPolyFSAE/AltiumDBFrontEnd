@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/bin/python3.7"
+    "python.pythonPath": "C:\\Users\\Nick Mah\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
+    "python.jediEnabled": false
 }
