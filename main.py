@@ -22,8 +22,8 @@ def main():
            7.5,	8.2, 9.1]
     multiples = [1, 10, 100]
     units = ['', 'k', 'M']
-    packages = ['0402', '0603', '0805', '1206']
-    powers = ['1/10W', '1/4W', '1/2W', '3/4W', '1W']
+    packages = ['0402', '0603', '0805']
+    powers = ['1/10W', '1/4W', '1/2W']
     symbol = 'Resistor'
     symbolsPath = 'Symbols/Passives.schlib'
     footprintPath = 'Footprints/Passibes.Pcblib'
@@ -53,13 +53,16 @@ def main():
                     for unit in units:
                         for multiple in multiples:
                             for resistance in resistances:
-                                resistance = round(resistance * multiple,1)
+                                resistance = round(resistance * multiple, 1)
                                 if multiple != 1:
                                     resistance = int(resistance)
                                 name = 'Res_{value}{unit}_{package}_{power}_{tolerance}%'.format(
                                     value=resistance, unit=unit, package=package, power=power, tolerance=tolerance)
-                                comment
-                                csvWriter.writerow([name, resistance, power, package,])
+                                comment = 'Resistor {value}{unit} {package} {power} {tolerance}%'.format(
+                                    value=resistance, unit=unit, package=package, power=power, tolerance=tolerance)
+                                csvWriter.writerow([name, '{}{}'.format(resistance, unit), '{}%'.format(
+                                    tolerance), power, package, comment, creator, date, symbol, symbolsPath, package, footprintPath])
+
 
 if __name__ == "__main__":
     main()
