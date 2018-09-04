@@ -1,4 +1,7 @@
 {
     "python.pythonPath": "C:\\Users\\Nick Mah\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
-    "python.jediEnabled": false
+    "python.jediEnabled": false,
+    "python.linting.pylintArgs": [
+        "--extension-pkg-whitelist=PyQt5"
+    ]
 }
