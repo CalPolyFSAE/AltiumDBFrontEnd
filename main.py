@@ -3,7 +3,6 @@ import mysql.connector
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5.QtSql import *
 
 
 class Describe:
@@ -44,6 +43,7 @@ class Describe:
                 default=self.default[i], extra=self.extra[i])
         return result
 
+
 class Example(QWidget):
 
     def __init__(self, db):
@@ -52,28 +52,72 @@ class Example(QWidget):
         self.initUI(db)
 
     def initUI(self, db):
+        self.colCombo = []
+        self.colLabel = []
         self.grid = QGridLayout()
         self.verticalLayout = QVBoxLayout(self)
         cursor = db.cursor()
         cursor.execute("""SHOW TABLES""")
         results = cursor.fetchall()
-        self.combo = QComboBox(self)
+        self.tableCombo = QComboBox(self)
+        self.tableLabel = QLabel(self)
+        self.tableLabel.setText('Table')
         for result in results:
-            self.combo.addItem(result[0])
-        self.combo.activated[str].connect(self.addCombo)
-        self.grid.addWidget(self.combo, 0, 0)
+            self.tableCombo.addItem(result[0])
+        self.tableCombo.activated[str].connect(self.showTable)
+        self.grid.addWidget(self.tableCombo, 0, 1)
+        self.grid.addWidget(self.tableLabel, 0, 0)
         self.setGeometry(300, 300, 300, 200)
-        self.setWindowTitle('QComboBox')
+        self.setWindowTitle('Altium DB')
         self.verticalLayout.addLayout(self.grid)
         self.show()
         cursor.close()
 
-    def addCombo(self, text):
+    def showTable(self, text):
         table = Describe(self.db)
         table.describeTable(text)
-        self.combo = QComboBox(self)
-        self.combo.addItems(table.field)
-        self.grid.addWidget(self.combo, 0,1)
+        for i in range(len(table.field)):
+            self.addLabel(table.field[i], i+1, 0)
+            self.addCombo(['test1', 'test2'], i+1, 1)
+        self.removeRowsBelow(len(table.field))
+
+    def removeRowsBelow(self, yPos):
+        if(len(self.colCombo)-1 > yPos):
+            for i in range(yPos, len(self.colCombo)):
+                self.removeRows(i)
+            self.clearNones()
+
+    def clearNones(self):
+        self.colCombo = [x for x in self.colCombo if x]
+        self.colLabel = [x for x in self.colLabel if x]
+
+    def removeRows(self, yPos):
+        # finds removes items from colLabel and colCombo at an index
+        if(self.colCombo[yPos]):
+            self.colCombo[yPos].deleteLater()
+            self.colCombo[yPos] = None
+        if(self.colLabel[yPos]):
+            self.colLabel[yPos].deleteLater()
+            self.colLabel[yPos] = None
+
+    def addLabel(self, text, yPos, xPos):
+        if(yPos > len(self.colLabel) or not self.colLabel[yPos-1]):
+            self.colLabel.append(QLabel(self))
+            self.colLabel[-1].setText(text)
+            self.grid.addWidget(self.colLabel[-1], yPos, xPos)
+        else:
+            self.colLabel[yPos - 1].setText(text)
+
+    def addCombo(self, text, yPos, xPos):
+        if(yPos > len(self.colCombo) or not self.colCombo[yPos-1]):
+            self.colCombo.append(QComboBox(self))
+            self.colCombo[-1].addItems(text)
+            self.grid.addWidget(self.colCombo[-1], yPos, xPos)
+        else:
+            for i in range(self.colCombo[yPos - 1].count()):
+                self.colCombo[yPos - 1].removeItem(0)
+            self.colCombo[yPos - 1].addItems(text)
+
     def center(self):
 
         qr = self.frameGeometry()
@@ -85,9 +129,11 @@ class Example(QWidget):
 
         if e.key() == Qt.Key_Escape:
             self.close()
+
     def closeEvent(self, event):
         print("closing PyQTTest")
         self.db.close()
+
 
 def main():
     # Creating main connection
