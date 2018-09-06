@@ -1,9 +1,7 @@
 import sys
 import mysql.connector
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-
+from PyQt5.QtWidgets import QLineEdit, QComboBox, QLabel, QWidget, QApplication, QGridLayout, QVBoxLayout,QDesktopWidget
+from PyQt5.QtCore import Qt
 
 class Describe:
     # All of the information from describe
@@ -54,6 +52,7 @@ class Example(QWidget):
     def initUI(self, db):
         self.colCombo = []
         self.colLabel = []
+        self.colLineEdit = []
         self.grid = QGridLayout()
         self.verticalLayout = QVBoxLayout(self)
         cursor = db.cursor()
@@ -74,22 +73,53 @@ class Example(QWidget):
         cursor.close()
 
     def showTable(self, text):
+        # updates all of the columns for a given table
         table = Describe(self.db)
         table.describeTable(text)
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM `{}`""".format(text))
+        results = cursor.fetchall()
+        if(results):
+            tResults = self.transposeResults(results)
+            fResults = self.filterResults(tResults)
         for i in range(len(table.field)):
             self.addLabel(table.field[i], i+1, 0)
-            self.addCombo(['test1', 'test2'], i+1, 1)
+            self.addLineEdit(i+1, 2)
+            if(results):
+                # Error switching between drawer and anything else
+                self.addCombo(fResults[i], i+1, 1)
+            else:
+                self.addCombo(['Null'], i+1, 1)
         self.removeRowsBelow(len(table.field))
 
+    def filterResults(self, results):
+        # removes duplicates
+        filtered = []
+        for result in results:
+            filtered.append(list(dict.fromkeys(result)))
+        return filtered
+
+    def transposeResults(self, results):
+        # transposes the 2d list that results holds
+        transpose = []
+        for i in range(len(results[0])):
+            transpose.append([])
+            for j in range(len(results)):
+                transpose[i].append(results[j][i])
+        return transpose
+
     def removeRowsBelow(self, yPos):
+        # removes all rows below a given position from the columns
         if(len(self.colCombo)-1 > yPos):
             for i in range(yPos, len(self.colCombo)):
                 self.removeRows(i)
             self.clearNones()
 
     def clearNones(self):
+        # removes all of the nones
         self.colCombo = [x for x in self.colCombo if x]
         self.colLabel = [x for x in self.colLabel if x]
+        self.colLinedEdit = [x for x in self.colLineEdit if x]
 
     def removeRows(self, yPos):
         # finds removes items from colLabel and colCombo at an index
@@ -99,6 +129,14 @@ class Example(QWidget):
         if(self.colLabel[yPos]):
             self.colLabel[yPos].deleteLater()
             self.colLabel[yPos] = None
+        if(self.colLineEdit[yPos]):
+            self.colLineEdit[yPos].deleteLater()
+            self.colLineEdit[yPos] = None
+
+    def addLineEdit(self, yPos, xPos):
+        if(yPos > len(self.colLineEdit) or not self.colLineEdit[yPos - 1]):
+            self.colLineEdit.append(QLineEdit(self))
+            self.grid.addWidget(self.colLineEdit[-1], yPos, xPos)
 
     def addLabel(self, text, yPos, xPos):
         if(yPos > len(self.colLabel) or not self.colLabel[yPos-1]):
@@ -111,11 +149,13 @@ class Example(QWidget):
     def addCombo(self, text, yPos, xPos):
         if(yPos > len(self.colCombo) or not self.colCombo[yPos-1]):
             self.colCombo.append(QComboBox(self))
-            self.colCombo[-1].addItems(text)
+            for value in text:
+                self.colCombo[-1].addItem(str(value))
             self.grid.addWidget(self.colCombo[-1], yPos, xPos)
         else:
             for i in range(self.colCombo[yPos - 1].count()):
                 self.colCombo[yPos - 1].removeItem(0)
+            text = list(map(str, text))
             self.colCombo[yPos - 1].addItems(text)
 
     def center(self):
