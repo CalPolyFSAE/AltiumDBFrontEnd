@@ -2,7 +2,9 @@ from PyQt5.QtWidgets import (QLineEdit, QComboBox, QLabel, QWidget, QApplication
                              QGridLayout, QVBoxLayout, QHBoxLayout,  QDesktopWidget, QPushButton,
                              QMessageBox)
 from PyQt5.QtCore import Qt
-from sql import Describe, Select
+from sql import Table
+
+
 class FrontEnd(QWidget):
 
     def __init__(self, db):
@@ -14,7 +16,7 @@ class FrontEnd(QWidget):
         self.colCombo = []
         self.colLabel = []
         self.colLineEdit = []
-        self.table = None
+        self.tableName = None
         self.grid = QGridLayout()
         self.verticalLayout = QVBoxLayout(self)
         cursor = db.cursor()
@@ -32,7 +34,7 @@ class FrontEnd(QWidget):
         self.tableCombo.activated[str].connect(self.showTable)
         self.showTable(results[0][0])
         self.find.clicked.connect(self.findParts)
-        self.edit.clicked.connect(self.editParts)
+        self.edit.clicked.connect(self.editPart)
         self.add.clicked.connect(self.addParts)
         self.grid.addWidget(self.tableCombo, 0, 1)
         self.grid.addWidget(self.tableLabel, 0, 0)
@@ -48,8 +50,9 @@ class FrontEnd(QWidget):
     def findParts(self):
         filt = ''
         if(self.colLineEdit[0].text()):
-            #if someone puts in an pKey, just use that
-            filt = "`{}` = '{}'".format(self.colLabel[0].text(), self.colLineEdit[0].text())
+            # if someone puts in an pKey, just use that
+            filt = "`{}` = '{}'".format(
+                self.colLabel[0].text(), self.colLineEdit[0].text())
         else:
             for i in range(len(self.colLabel)):
                 if self.colLineEdit[i].text():
@@ -60,36 +63,45 @@ class FrontEnd(QWidget):
                         filt += "= '{}'".format(self.colLineEdit[i].text())
                     filt += " and "
                 if i == len(self.colLabel)-1:
-                    filt = filt[:-len(' and ')]             
-        self.showTable(self.table, filt)
+                    filt = filt[:-len(' and ')]
+        self.showTable(self.tableName, filt)
 
-    def editParts(self):
-        print('Edit')
+    def editPart(self):
+        if self.colLineEdit[0].text:
+            # checking to see if there is text in the primary key
+            print('edit')
+        else:
+            print("don't edit")
 
     def addParts(self):
         print('Add')
 
     def showTable(self, text, filt=None):
         # updates all of the columns for a given table
-        self.table = text
-        table = Describe(self.db, self.table)
-        results = Select(self.db, self.table).selectTable(filt=filt)
+        self.tableName = text
+        table = Table(self.db, self.tableName)
+        table.describeTable()
+        results = table.selectTable(filt=filt)
         if(results):
             tResults = self.transposeResults(results)
             fResults = self.filterResults(tResults)
         else:
             msg = QMessageBox()
-            msg.setText('Table {} has no rows that match filter {}'.format(self.table, filt))
+            msg.setText(
+                'Table {} has no rows that match filter {}'.format(self.tableName, filt))
             msg.exec_()
-        for i in range(len(table.field)):
-            self.addLabel(table.field[i], i+1, 0)
+        for i in range(table.numColumns()):
+            self.addLabel(table.colList[i].field, i+1, 0)
             self.addLineEdit(i+1, 2)
             if(results):
                 # Error switching between drawer and anything else
-                self.addCombo(fResults[i], i+1, 1)
+                if(table.colList[i].isForeign()):
+                    self.addCombo(table.colList[i].fTable.selectTable('Name'), i+1, 1)
+                else:
+                    self.addCombo(fResults[i], i+1, 1)
             else:
                 self.addCombo(['Null'], i+1, 1)
-        self.removeRowsBelow(len(table.field))
+        self.removeRowsBelow(table.numColumns())
 
     def filterResults(self, results):
         # removes duplicates
@@ -150,7 +162,10 @@ class FrontEnd(QWidget):
             self.colCombo.append(QComboBox(self))
             if(text[0] is not None):
                 for value in text:
-                    self.colCombo[-1].addItem(str(value))                       
+                    if isinstance(value, tuple) or isinstance(value, list):
+                        #fixing any issues with lists
+                        value = value[0]
+                    self.colCombo[-1].addItem(str(value))
             else:
                 self.colCombo[-1].addItem("Null")
             self.grid.addWidget(self.colCombo[-1], yPos, xPos)
@@ -159,8 +174,11 @@ class FrontEnd(QWidget):
             for i in range(self.colCombo[yPos - 1].count()):
                 self.colCombo[yPos - 1].removeItem(0)
             if(text[0] is not None):
-                text = list(map(str, text))
-                self.colCombo[yPos - 1].addItems(text)
+                for value in text:
+                    if isinstance(value, tuple) or isinstance(value, list):
+                        #fixing any issues with lists
+                        value = value[0]
+                    self.colCombo[yPos - 1].addItem(str(value))
             else:
                 self.colCombo[yPos - 1].addItem("Null")
 

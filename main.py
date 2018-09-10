@@ -3,6 +3,7 @@ import mysql.connector
 from PyQt5.QtWidgets import QApplication
 from FrontEnd import FrontEnd
 
+
 def main():
     # Creating main connection
     mydb = mysql.connector.connect(

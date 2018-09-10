@@ -1,60 +1,19 @@
+import mysql.connector
+
+
 class Table:
     def __init__(self, db, tableName):
         self.db = db
         self.tableName = tableName
+        self.colList = []
 
     def setTableName(self, tableName):
         self.tableName = tableName
 
-
-class Describe(Table):
-    # All of the information from describe
-    def __init__(self, db, tableName):
-        super().__init__(db, tableName)
-        self.field = []
-        self.type = []
-        self.null = []
-        self.key = []
-        self.default = []
-        self.extra = []
-        self.describeTable()
-
-    def describeTable(self):
-        if self.field:
-            print("Describe object already in use")
-            return
-        cursor = self.db.cursor()
-        cursor.execute("""DESCRIBE `{}`""".format(self.tableName))
-        results = cursor.fetchall()
-        self.processResults(results)
-        cursor.close()
-
-    def processResults(self, results):
-        for i in range(len(results)):
-            self.field.append(results[i][0])
-            self.type.append(results[i][1])
-            self.null.append(results[i][2])
-            self.key.append(results[i][3])
-            self.default.append(results[i][4])
-            self.extra.append(results[i][5])
-
-    def __str__(self):
-        result = ''
-        for i in range(len(self.field)):
-            result += "{field:30}{type:20}{null:10}{key:10}{default}\t{extra}\n".format(
-                field=self.field[i], type=self.type[i], null=self.null[i], key=self.key[i],
-                default=self.default[i], extra=self.extra[i])
-        return result
-
-
-class Select(Table):
-    def __init__(self, db, tableName):
-        super().__init__(db, tableName)
-
     def selectTable(self, col=None, filt=None):
         cursor = self.db.cursor()
         text = "SELECT "
-        if(col):
+        if col:
             text += "{}".format(col)
         else:
             text += "*"
@@ -65,3 +24,61 @@ class Select(Table):
         results = cursor.fetchall()
         cursor.close()
         return results
+
+    def describeTable(self):
+        cursor = self.db.cursor()
+        cursor.execute("""DESCRIBE `{}`""".format(self.tableName))
+        results = cursor.fetchall()
+        cursor.close()
+        for result in results:
+            self.colList.append(Column(result, self.tableName, self.db))
+            if(self.colList[-1].isForeign()):
+                self.colList[-1].getForeignTable()
+
+    def numColumns(self):
+        return len(self.colList)
+
+
+class Column:
+    def __init__(self, result, tableName, db):
+        # intended to take information from Describe Table
+        self.db = db
+        self.field = result[0]
+        self.type = result[1]
+        self.null = result[2]
+        self.key = result[3]
+        self.default = result[4]
+        self.extra = result[5]
+        self.tableName = tableName
+        self.fTable = None
+    def isForeign(self):
+        # checks if column is a foreign key
+        return self.key == "MUL"
+
+    def isPrimary(self):
+        # checks if column is the primary key
+        return self.key == "PRI"
+
+    def isNullable(self):
+        return self.null == "YES"
+
+    def getForeignTable(self):
+        # returns a table object of the table the foreign key points to
+        if not self.isForeign():
+            # print("Column {} is not a foreign key".format(self.field))
+            return None
+        # mydb = mysql.connector.connect(
+        #     host="altium.cyyn3lqbjhax.us-east-2.rds.amazonaws.com",
+        #     user="cpracing",
+        #     passwd="formulasae",
+        #     database="information_schema"
+        # )
+        prev = self.db.database
+        self.db.database = "information_schema"  # search the information schema
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT REFERENCED_TABLE_NAME FROM key_column_usage WHERE TABLE_NAME = "{}" and COLUMN_NAME = "{}"; """.format(
+            self.tableName, self.field))
+        self.fTable = Table(self.db,cursor.fetchall()[0][0])  # only expecting one result
+        self.db.database = prev  # set database back to what it was
+        self.fTable.describeTable()
+        cursor.close()
