@@ -54,27 +54,61 @@ class FrontEnd(QWidget):
             filt = "`{}` = '{}'".format(
                 self.colLabel[0].text(), self.colLineEdit[0].text())
         else:
-            for i in range(len(self.colLabel)):
-                if self.colLineEdit[i].text():
-                    filt += "`{}` ".format(self.colLabel[i].text())
-                    if(self.colLineEdit[i].text() == 'Null'):
+            for column in self.getUserInputs():
+                if column[1]:
+                    # check if something was typed in for that column
+                    if filt:
+                        filt += ' and '  # concatenating strings
+                    filt += "`{}`".format(column[0])
+                    if(column[1] == 'Null'):
                         filt += "is Null"
                     else:
-                        filt += "= '{}'".format(self.colLineEdit[i].text())
-                    filt += " and "
-                if i == len(self.colLabel)-1:
-                    filt = filt[:-len(' and ')]
+                        filt += "= '{}'".format(column[1])
         self.showTable(self.tableName, filt)
 
     def editPart(self):
-        if self.colLineEdit[0].text:
+        if self.colLineEdit[0].text():
             # checking to see if there is text in the primary key
-            print('edit')
+            columns = self.getUserInputs()
+            params = ''
+            for i in range(len(columns)):
+                column = columns[i]
+                if not i:
+                    primaryKey = column[0]
+                    pk_id = column[1]
+                else:
+                    if column[1]:  # only edit types in parameters
+                        if params:
+                            params += ', '
+                        params += "`{}` = '{}'".format(column[0], column[1])
+
+            cursor = self.db.cursor()
+            stmt = """UPDATE `{tableName}`
+            SET {params}
+            WHERE {primaryKey} = {pk_id}; """.format(tableName=self.tableName, params=params, primaryKey=primaryKey, pk_id=pk_id)
+            print(stmt)
+            cursor.execute(stmt)
+            self.db.commit()
+            cursor.close()
+            self.showTable(self.tableName)
         else:
-            print("don't edit")
+            self.displayMsg('Cannot edit without Primary Key')
 
     def addParts(self):
         print('Add')
+
+    def getUserInputs(self):
+        # returns a 2d array of all inputs
+        result = []
+        for i in range(len(self.colLabel)):
+            tmp = [self.colLabel[i].text(), self.colLineEdit[i].text()]
+            result.append(tmp)
+        return result
+
+    def displayMsg(self, text):
+        msg = QMessageBox()
+        msg.setText(text)
+        msg.exec_()
 
     def showTable(self, text, filt=None):
         # updates all of the columns for a given table
@@ -85,23 +119,27 @@ class FrontEnd(QWidget):
         if(results):
             tResults = self.transposeResults(results)
             fResults = self.filterResults(tResults)
+
         else:
-            msg = QMessageBox()
-            msg.setText(
-                'Table {} has no rows that match filter {}'.format(self.tableName, filt))
-            msg.exec_()
-        for i in range(table.numColumns()):
-            self.addLabel(table.colList[i].field, i+1, 0)
-            self.addLineEdit(i+1, 2)
-            if(results):
-                # Error switching between drawer and anything else
-                if(table.colList[i].isForeign()):
-                    self.addCombo(table.colList[i].fTable.selectTable('Name'), i+1, 1)
-                else:
-                    self.addCombo(fResults[i], i+1, 1)
+            if(filt):
+                self.displayMsg('Table {} has no rows that match filter {}'.format(
+                    self.tableName, filt))
             else:
-                self.addCombo(['Null'], i+1, 1)
-        self.removeRowsBelow(table.numColumns())
+                self.displayMsg('Table {} has no rows'.format(self.tableName))
+        if(not filt and not results) or results:
+            for i in range(table.numColumns()):
+                self.addLabel(table.colList[i].field, i+1, 0)
+                self.addLineEdit(i+1, 2)
+                if(results):
+                    # Error switching between drawer and anything else
+                    if(table.colList[i].isForeign()):
+                        self.addCombo(
+                            table.colList[i].fTable.selectTable('Name'), i+1, 1)
+                    else:
+                        self.addCombo(fResults[i], i+1, 1)
+                else:
+                    self.addCombo(['Null'], i+1, 1)
+            self.removeRowsBelow(table.numColumns())
 
     def filterResults(self, results):
         # removes duplicates
@@ -163,7 +201,7 @@ class FrontEnd(QWidget):
             if(text[0] is not None):
                 for value in text:
                     if isinstance(value, tuple) or isinstance(value, list):
-                        #fixing any issues with lists
+                        # fixing any issues with lists
                         value = value[0]
                     self.colCombo[-1].addItem(str(value))
             else:
@@ -176,7 +214,7 @@ class FrontEnd(QWidget):
             if(text[0] is not None):
                 for value in text:
                     if isinstance(value, tuple) or isinstance(value, list):
-                        #fixing any issues with lists
+                        # fixing any issues with lists
                         value = value[0]
                     self.colCombo[yPos - 1].addItem(str(value))
             else:
