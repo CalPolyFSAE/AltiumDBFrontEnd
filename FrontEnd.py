@@ -157,7 +157,6 @@ class FrontEnd(QWidget):
                 self.addLabel(table.colList[i].field, i+1, 0)
                 self.addLineEdit(i+1, 2)
                 if(results):
-                    # Error switching between drawer and anything else
                     if(table.colList[i].isForeign()):
                         self.addCombo(
                             table.colList[i].fTable.selectTable('Name'), i+1, 1)
@@ -212,6 +211,8 @@ class FrontEnd(QWidget):
         if(yPos > len(self.colLineEdit) or not self.colLineEdit[yPos - 1]):
             self.colLineEdit.append(QLineEdit(self))
             self.grid.addWidget(self.colLineEdit[-1], yPos, xPos)
+        else:
+            self.colLineEdit[yPos - 1].setText(None)
 
     def addLabel(self, text, yPos, xPos):
         if(yPos > len(self.colLabel) or not self.colLabel[yPos-1]):
