@@ -95,7 +95,33 @@ class FrontEnd(QWidget):
             self.displayMsg('Cannot edit without Primary Key')
 
     def addParts(self):
-        print('Add')
+        if not self.colLineEdit[0].text():
+            # checking to see if there is text in the primary key
+            columns = self.getUserInputs()
+            cols = ''
+            values = ''
+            for i in range(len(columns)):
+                column = columns[i]
+                if not i:
+                    primaryKey = column[0]
+                    pk_id = column[1]
+                else:
+                    if column[1]:  # only edit types in parameters
+                        if cols:
+                            cols += ', '
+                            values += ', '
+                        cols += "`{}`".format(column[0])
+                        values += "'{}'".format(column[1])
+            cursor = self.db.cursor()
+            stmt = """INSERT INTO `{tableName}` ({columns})
+            VALUES ({values}); """.format(tableName=self.tableName, columns = cols, values = values)
+            print(stmt)
+            cursor.execute(stmt)
+            self.db.commit()
+            cursor.close()
+            self.showTable(self.tableName)
+        else:
+            self.displayMsg('Primary Key has value, remove in order to insert part')
 
     def getUserInputs(self):
         # returns a 2d array of all inputs
