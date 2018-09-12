@@ -191,7 +191,7 @@ class FrontEnd(QWidget):
                 self.removeRows(i)
             self.colCombo = [x for x in self.colCombo if x]
             self.colLabel = [x for x in self.colLabel if x]
-            self.colLinedEdit = [x for x in self.colLineEdit if x]
+            self.colLineEdit = [x for x in self.colLineEdit if x]
 
     def removeRows(self, yPos):
         # finds removes items from colLabel and colCombo at an index
