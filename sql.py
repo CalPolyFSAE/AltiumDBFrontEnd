@@ -2,13 +2,14 @@ import mysql.connector
 
 
 class Table:
-    def __init__(self, db, tableName):
+    def __init__(self, db, name):
         self.db = db
-        self.tableName = tableName
+        self.name = name
         self.colList = []
+        self.describeTable()
 
-    def setTableName(self, tableName):
-        self.tableName = tableName
+    def setName(self, name):
+        self.name = name
 
     def selectTable(self, col=None, filt=None):
         cursor = self.db.cursor()
@@ -17,7 +18,7 @@ class Table:
             text += "{}".format(col)
         else:
             text += "*"
-        text += " FROM `{}` ".format(self.tableName)
+        text += " FROM `{}` ".format(self.name)
         if(filt):
             text += "WHERE {};".format(filt)
         cursor.execute(text)
@@ -27,16 +28,28 @@ class Table:
 
     def describeTable(self):
         cursor = self.db.cursor()
-        cursor.execute("""DESCRIBE `{}`""".format(self.tableName))
+        cursor.execute("""DESCRIBE `{}`""".format(self.name))
         results = cursor.fetchall()
         cursor.close()
         for result in results:
-            self.colList.append(Column(result, self.tableName, self.db))
-            if(self.colList[-1].isForeign()):
-                self.colList[-1].getForeignTable()
+            self.colList.append(Column(result, self.name, self.db))
 
     def numColumns(self):
         return len(self.colList)
+
+    def getPrimaryKey(self):
+        for column in self.colList:
+            if column.isPrimary():
+                return column.field
+
+    def editTable(self, params, pk_id):
+        cursor = self.db.cursor()
+        stmt = """UPDATE `{tableName}`
+                    SET {params}
+                    WHERE {primaryKey} = {pk_id}; """.format(tableName=self.name, params=params, primaryKey=self.getPrimaryKey(), pk_id=pk_id)
+        cursor.execute(stmt)
+        self.db.commit()
+        cursor.close()
 
 
 class Column:
@@ -50,7 +63,11 @@ class Column:
         self.default = result[4]
         self.extra = result[5]
         self.tableName = tableName
-        self.fTable = None
+        if(self.isForeign()):
+            # changing class to foreign key if it is one
+            self.__class__ = Foreign_Key
+            self.getForeignTable()
+
     def isForeign(self):
         # checks if column is a foreign key
         return self.key == "MUL"
@@ -62,23 +79,43 @@ class Column:
     def isNullable(self):
         return self.null == "YES"
 
+    def getName(self):
+        return self.field
+
+
+class Foreign_Key(Column):
+    def __init__(self, result, tableName, db):
+        super().__init__(result, tableName, db)
+        self.fTable = None
+
     def getForeignTable(self):
         # returns a table object of the table the foreign key points to
         if not self.isForeign():
             # print("Column {} is not a foreign key".format(self.field))
             return None
-        # mydb = mysql.connector.connect(
-        #     host="altium.cyyn3lqbjhax.us-east-2.rds.amazonaws.com",
-        #     user="cpracing",
-        #     passwd="formulasae",
-        #     database="information_schema"
-        # )
         prev = self.db.database
         self.db.database = "information_schema"  # search the information schema
         cursor = self.db.cursor()
         cursor.execute("""SELECT REFERENCED_TABLE_NAME FROM key_column_usage WHERE TABLE_NAME = "{}" and COLUMN_NAME = "{}"; """.format(
             self.tableName, self.field))
-        self.fTable = Table(self.db,cursor.fetchall()[0][0])  # only expecting one result
+        result = cursor.fetchall()[0][0]
         self.db.database = prev  # set database back to what it was
-        self.fTable.describeTable()
+        self.fTable = Table(self.db, result)  # only expecting one result
         cursor.close()
+
+    def getFKeyName(self):
+        # returns the name of the foreign key that is being pointed to
+        return self.fTable.getPrimaryKey()
+
+    def getFKeyVals(self, columnName, ids):
+        # returns an array of all values from column matching id and name
+        tmp = ""  # rename this
+        for num in ids:
+            # create string of ids
+            if tmp:
+                tmp += ', '
+            tmp += "'{}'".format(num)
+        stmt = "{fkName} in ({tmp})".format(fkName=self.getFKeyName(), tmp=tmp)
+        results = self.fTable.selectTable(col=columnName, filt=stmt)
+        return results
+

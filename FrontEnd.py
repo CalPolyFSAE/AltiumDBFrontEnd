@@ -16,7 +16,6 @@ class FrontEnd(QWidget):
         self.colCombo = []
         self.colLabel = []
         self.colLineEdit = []
-        self.tableName = None
         self.grid = QGridLayout()
         self.verticalLayout = QVBoxLayout(self)
         cursor = db.cursor()
@@ -32,6 +31,7 @@ class FrontEnd(QWidget):
         for result in results:
             self.tableCombo.addItem(result[0])
         self.tableCombo.activated[str].connect(self.showTable)
+        self.table = Table(db, results[0][0])
         self.showTable(results[0][0])
         self.find.clicked.connect(self.findParts)
         self.edit.clicked.connect(self.editPart)
@@ -64,7 +64,7 @@ class FrontEnd(QWidget):
                         filt += "is Null"
                     else:
                         filt += "= '{}'".format(column[1])
-        self.showTable(self.tableName, filt)
+        self.showTable(self.table.name, filt)
 
     def editPart(self):
         if self.colLineEdit[0].text():
@@ -73,24 +73,11 @@ class FrontEnd(QWidget):
             params = ''
             for i in range(len(columns)):
                 column = columns[i]
-                if not i:
-                    primaryKey = column[0]
-                    pk_id = column[1]
-                else:
-                    if column[1]:  # only edit types in parameters
-                        if params:
-                            params += ', '
-                        params += "`{}` = '{}'".format(column[0], column[1])
-
-            cursor = self.db.cursor()
-            stmt = """UPDATE `{tableName}`
-            SET {params}
-            WHERE {primaryKey} = {pk_id}; """.format(tableName=self.tableName, params=params, primaryKey=primaryKey, pk_id=pk_id)
-            print(stmt)
-            cursor.execute(stmt)
-            self.db.commit()
-            cursor.close()
-            self.showTable(self.tableName)
+                if column[1]:  # only edit types in parameters
+                    if params:
+                        params += ', '
+                    params += "`{}` = '{}'".format(column[0], column[1])
+            self.showTable(self.table.name)
         else:
             self.displayMsg('Cannot edit without Primary Key')
 
@@ -113,21 +100,31 @@ class FrontEnd(QWidget):
                         cols += "`{}`".format(column[0])
                         values += "'{}'".format(column[1])
             cursor = self.db.cursor()
-            stmt = """INSERT INTO `{tableName}` ({columns})
-            VALUES ({values}); """.format(tableName=self.tableName, columns = cols, values = values)
+            stmt = """INSERT INTO `{name}` ({columns})
+            VALUES ({values}); """.format(name=self.table.name, columns=cols, values=values)
             print(stmt)
             cursor.execute(stmt)
             self.db.commit()
             cursor.close()
-            self.showTable(self.tableName)
+            self.showTable(self.table.name)
         else:
-            self.displayMsg('Primary Key has value, remove in order to insert part')
+            self.displayMsg(
+                'Primary Key has value, remove in order to insert part')
 
     def getUserInputs(self):
         # returns a 2d array of all inputs
         result = []
-        for i in range(len(self.colLabel)):
-            tmp = [self.colLabel[i].text(), self.colLineEdit[i].text()]
+        for i in range(self.table.numColumns()):
+            columnName = self.table.colList[i].getName()
+            inputText = self.colLineEdit[i].text()
+            if inputText and self.table.colList[i].isForeign():
+                fKeyID = self.table.colList[i].getFKeyName()
+                filt = "Name = '{}'".format(inputText)
+                columnValue = self.table.colList[i].fTable.selectTable(
+                    col=fKeyID, filt=filt)[0][0]
+            else:
+                columnValue = inputText
+            tmp = [columnName, columnValue]
             result.append(tmp)
         return result
 
@@ -138,33 +135,35 @@ class FrontEnd(QWidget):
 
     def showTable(self, text, filt=None):
         # updates all of the columns for a given table
-        self.tableName = text
-        table = Table(self.db, self.tableName)
-        table.describeTable()
-        results = table.selectTable(filt=filt)
+        if(self.table.name != text):
+            self.table = Table(self.db, text)
+            # Regen table if it's the wrong one
+        results = self.table.selectTable(filt=filt)
+        # add a getTable or something that returns all of this stuff and takes advantage of the column class
         if(results):
+            # TODO: Replace is select distinct
             tResults = self.transposeResults(results)
             fResults = self.filterResults(tResults)
 
         else:
             if(filt):
                 self.displayMsg('Table {} has no rows that match filter {}'.format(
-                    self.tableName, filt))
+                    self.table.name, filt))
             else:
-                self.displayMsg('Table {} has no rows'.format(self.tableName))
+                self.displayMsg('Table {} has no rows'.format(self.table.name))
         if(not filt and not results) or results:
-            for i in range(table.numColumns()):
-                self.addLabel(table.colList[i].field, i+1, 0)
+            for i in range(self.table.numColumns()):
+                self.addLabel(self.table.colList[i].getName(), i+1, 0)
                 self.addLineEdit(i+1, 2)
                 if(results):
-                    if(table.colList[i].isForeign()):
-                        self.addCombo(
-                            table.colList[i].fTable.selectTable('Name'), i+1, 1)
+                    if(self.table.colList[i].isForeign()):
+                        self.addCombo(  # Left off here, trying to select results that match fResults
+                            self.table.colList[i].getFKeyVals('Name', fResults[i]), i+1, 1)
                     else:
                         self.addCombo(fResults[i], i+1, 1)
                 else:
                     self.addCombo(['Null'], i+1, 1)
-            self.removeRowsBelow(table.numColumns())
+            self.removeRowsBelow(self.table.numColumns())
 
     def filterResults(self, results):
         # removes duplicates
@@ -187,13 +186,9 @@ class FrontEnd(QWidget):
         if(len(self.colCombo)-1 > yPos):
             for i in range(yPos, len(self.colCombo)):
                 self.removeRows(i)
-            self.clearNones()
-
-    def clearNones(self):
-        # removes all of the nones
-        self.colCombo = [x for x in self.colCombo if x]
-        self.colLabel = [x for x in self.colLabel if x]
-        self.colLinedEdit = [x for x in self.colLineEdit if x]
+            self.colCombo = [x for x in self.colCombo if x]
+            self.colLabel = [x for x in self.colLabel if x]
+            self.colLinedEdit = [x for x in self.colLineEdit if x]
 
     def removeRows(self, yPos):
         # finds removes items from colLabel and colCombo at an index
