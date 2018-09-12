@@ -100,12 +100,14 @@ class FrontEnd(QWidget):
                             values += ', '
                         cols += "`{}`".format(column[0])
                         values += "'{}'".format(column[1])
-            cursor = self.db.cursor()
+            cursor = self.db.cursor()        
             stmt = """INSERT INTO `{name}` ({columns})
             VALUES ({values}); """.format(name=self.table.name, columns=cols, values=values)
-            print(stmt)
-            cursor.execute(stmt)
-            self.db.commit()
+            try:
+                cursor.execute(stmt)
+                self.db.commit()
+            except:
+                displayMsg('An Error has occured, ensure that all NN rows are filled in')
             cursor.close()
             self.showTable(self.table.name)
         else:
