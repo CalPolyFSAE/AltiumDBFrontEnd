@@ -69,16 +69,20 @@ class FrontEnd(QWidget):
     def editPart(self):
         if self.colLineEdit[0].text():
             # checking to see if there is text in the primary key
-            columns = self.getUserInputs()            
-            params = ''
-            for i in range(len(columns)):
-                column = columns[i]
-                if column[1]:  # only edit types in parameters
-                    if params:
-                        params += ', '
-                    params += "`{}` = '{}'".format(column[0], column[1])
-            self.table.editTable(params, self.colLineEdit[0].text())
-            self.showTable(self.table.name)
+            pk = self.colLineEdit[0].text()
+            if pk.isdigit() and int(pk)>0:
+                columns = self.getUserInputs()            
+                params = ''
+                for i in range(len(columns)):
+                    column = columns[i]
+                    if column[1]:  # only edit types in parameters
+                        if params:
+                            params += ', '
+                        params += "`{}` = '{}'".format(column[0], column[1])
+                self.table.editTable(params, self.colLineEdit[0].text())
+                self.showTable(self.table.name)
+            else:
+                self.displayMsg('Primary Key must be integer > 0')
         else:
             self.displayMsg('Cannot edit without Primary Key')
 
@@ -90,16 +94,12 @@ class FrontEnd(QWidget):
             values = ''
             for i in range(len(columns)):
                 column = columns[i]
-                if not i:
-                    primaryKey = column[0]
-                    pk_id = column[1]
-                else:
-                    if column[1]:  # only edit types in parameters
-                        if cols:
-                            cols += ', '
-                            values += ', '
-                        cols += "`{}`".format(column[0])
-                        values += "'{}'".format(column[1])
+                if column[1]:  # only edit types in parameters
+                    if cols:
+                        cols += ', '
+                        values += ', '
+                    cols += "`{}`".format(column[0])
+                    values += "'{}'".format(column[1])
             cursor = self.db.cursor()        
             stmt = """INSERT INTO `{name}` ({columns})
             VALUES ({values}); """.format(name=self.table.name, columns=cols, values=values)
