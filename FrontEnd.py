@@ -69,7 +69,7 @@ class FrontEnd(QWidget):
     def editPart(self):
         if self.colLineEdit[0].text():
             # checking to see if there is text in the primary key
-            columns = self.getUserInputs()
+            columns = self.getUserInputs()            
             params = ''
             for i in range(len(columns)):
                 column = columns[i]
@@ -77,6 +77,7 @@ class FrontEnd(QWidget):
                     if params:
                         params += ', '
                     params += "`{}` = '{}'".format(column[0], column[1])
+            self.table.editTable(params, self.colLineEdit[0].text())
             self.showTable(self.table.name)
         else:
             self.displayMsg('Cannot edit without Primary Key')
