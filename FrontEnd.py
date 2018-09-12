@@ -107,7 +107,7 @@ class FrontEnd(QWidget):
                 cursor.execute(stmt)
                 self.db.commit()
             except:
-                displayMsg('An Error has occured, ensure that all NN rows are filled in')
+                self.displayMsg('An Error has occured, ensure that all NN rows are filled in')
             cursor.close()
             self.showTable(self.table.name)
         else:
