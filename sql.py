@@ -19,7 +19,7 @@ class Table:
         else:
             text += "*"
         text += " FROM `{}` ".format(self.name)
-        if(filt):
+        if filt:
             text += "WHERE {};".format(filt)
         cursor.execute(text)
         results = cursor.fetchall()
@@ -63,7 +63,7 @@ class Column:
         self.default = result[4]
         self.extra = result[5]
         self.tableName = tableName
-        if(self.isForeign()):
+        if self.isForeign():
             # changing class to foreign key if it is one
             self.__class__ = Foreign_Key
             self.getForeignTable()

@@ -2,9 +2,11 @@ import sys
 import mysql.connector
 from PyQt5.QtWidgets import QApplication
 from FrontEnd import FrontEnd
-import datetime
 
 def main():
+    """The main function. Establishes a database connection, then initiates the GUI
+    """
+
     # Creating main connection
     mydb = mysql.connector.connect(
         host="altium.cyyn3lqbjhax.us-east-2.rds.amazonaws.com",
