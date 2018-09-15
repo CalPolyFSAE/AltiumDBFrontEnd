@@ -253,7 +253,7 @@ class FrontEnd(QWidget):
             else:
                 # if there aren't any options available here, then just add a Null comboBox
                 self.add_combo(['Null'], i+1, 1)
-        self.s(self.table.numColumns())
+        self.remove_rows_below(self.table.numColumns())
 
     def filter_results(self, results):
         """Takes in a list and filters out all non-unique results
@@ -288,56 +288,56 @@ class FrontEnd(QWidget):
                 transpose[i].append(results[j][i])
         return transpose
 
-    def remove_rows_below(self, yPos):
+    def remove_rows_below(self, y_pos):
         """removes all rows from the GUI and the column lists that are below a given position
 
         Arguments:
-            yPos {int} -- The position to start removing rows from
+            y_pos {int} -- The position to start removing rows from
         """
 
-        if len(self.col_combo)-1 > yPos:
-            for i in range(yPos, len(self.col_combo)):
+        if len(self.col_combo)-1 > y_pos:
+            for i in range(y_pos, len(self.col_combo)):
                 self.remove_row(i)
             # clear all of Nones created by remove_row
             self.col_combo = [x for x in self.col_combo if x]
             self.col_label = [x for x in self.col_label if x]
             self.col_line_edit = [x for x in self.col_line_edit if x]
 
-    def remove_row(self, yPos):
+    def remove_row(self, y_pos):
         """A helper function for remove_rows_below. Takes in a y position and 
         removes the entire row from the GUI through deleteLater as well as deleting the object
 
         Arguments:
-            yPos {int} -- The position of the row to be deleted
+            y_pos {int} -- The position of the row to be deleted
         """
 
-        if self.col_combo[yPos]:
-            self.col_combo[yPos].deleteLater()
-            self.col_combo[yPos] = None
-        if self.col_label[yPos]:
-            self.col_label[yPos].deleteLater()
-            self.col_label[yPos] = None
-        if self.col_line_edit[yPos]:
-            self.col_line_edit[yPos].deleteLater()
-            self.col_line_edit[yPos] = None
+        if self.col_combo[y_pos]:
+            self.col_combo[y_pos].deleteLater()
+            self.col_combo[y_pos] = None
+        if self.col_label[y_pos]:
+            self.col_label[y_pos].deleteLater()
+            self.col_label[y_pos] = None
+        if self.col_line_edit[y_pos]:
+            self.col_line_edit[y_pos].deleteLater()
+            self.col_line_edit[y_pos] = None
 
-    def add_line_edit(self, yPos, xPos):
-        if(yPos > len(self.col_line_edit) or not self.col_line_edit[yPos - 1]):
+    def add_line_edit(self, y_pos, x_pos):
+        if(y_pos > len(self.col_line_edit) or not self.col_line_edit[y_pos - 1]):
             self.col_line_edit.append(QLineEdit(self))
-            self.grid.addWidget(self.col_line_edit[-1], yPos, xPos)
+            self.grid.addWidget(self.col_line_edit[-1], y_pos, x_pos)
         else:
-            self.col_line_edit[yPos - 1].setText(None)
+            self.col_line_edit[y_pos - 1].setText(None)
 
-    def add_label(self, text, yPos, xPos):
-        if(yPos > len(self.col_label) or not self.col_label[yPos-1]):
+    def add_label(self, text, y_pos, x_pos):
+        if(y_pos > len(self.col_label) or not self.col_label[y_pos-1]):
             self.col_label.append(QLabel(self))
             self.col_label[-1].setText(text)
-            self.grid.addWidget(self.col_label[-1], yPos, xPos)
+            self.grid.addWidget(self.col_label[-1], y_pos, x_pos)
         else:
-            self.col_label[yPos - 1].setText(text)
+            self.col_label[y_pos - 1].setText(text)
 
-    def add_combo(self, text, yPos, xPos):
-        if(yPos > len(self.col_combo) or not self.col_combo[yPos-1]):
+    def add_combo(self, text, y_pos, x_pos):
+        if(y_pos > len(self.col_combo) or not self.col_combo[y_pos-1]):
             self.col_combo.append(QComboBox(self))
             if text[0] is not None:
                 for value in text:
@@ -347,19 +347,19 @@ class FrontEnd(QWidget):
                     self.col_combo[-1].addItem(str(value))
             else:
                 self.col_combo[-1].addItem("Null")
-            self.grid.addWidget(self.col_combo[-1], yPos, xPos)
+            self.grid.addWidget(self.col_combo[-1], y_pos, x_pos)
             self.col_combo[-1].activated[str].connect(self.update_line)
         else:
-            for i in range(self.col_combo[yPos - 1].count()):
-                self.col_combo[yPos - 1].removeItem(0)
+            for i in range(self.col_combo[y_pos - 1].count()):
+                self.col_combo[y_pos - 1].removeItem(0)
             if text[0] is not None:
                 for value in text:
                     if isinstance(value, tuple) or isinstance(value, list):
                         # fixing any issues with lists
                         value = value[0]
-                    self.col_combo[yPos - 1].addItem(str(value))
+                    self.col_combo[y_pos - 1].addItem(str(value))
             else:
-                self.col_combo[yPos - 1].addItem("Null")
+                self.col_combo[y_pos - 1].addItem("Null")
 
     def update_line(self, text):
         self.col_line_edit[self.col_combo.index(self.sender())].setText(text)
