@@ -1,8 +1,8 @@
 # AltiumDBFrontEnd
 How to install:
     First, assuming you have Python 3.6 or 3.7 installed (NOTE: must add python to PATH, otherwise you won't be able to use python commands in command prompt), you must install all of the required packages. The first package to install is PyQt5
-    by calling pip3 install PyQt5.(might have to run pip3.exe under python installation folder for access to pip3 commands)
-    Next, you will need the mySQL connector for Python, call pip install mysql-connector-python from a python terminal
+    by calling **pip3 install PyQt5**.(might have to run pip3.exe under python installation folder for access to pip3 commands)
+    Next, you will need the mySQL connector for Python, call **pip install mysql-connector-python** from a python terminal
 How to use:
     To run the program, call python main.py while in this folder from the command terminal. You should also be able to double click on the main.py file. After some time, you will see the main GUI. At the very top is the table selector selecting any table from the drop-down menu will change the table. This may take some time to occur. Currently, there are three columns. The first column describes which table column you are looking at. The next column will display a drop down menu of the unique values that the table currently holds. Selecting a value from the drop down menu will insert it into the final column, the user input column. The final column is for user input to manipulate a column.
 
