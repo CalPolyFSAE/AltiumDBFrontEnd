@@ -1,6 +1,6 @@
 # AltiumDBFrontEnd
 How to install:
-    First, assuming you have Python 3.6 or 3.7 installed, you must install all of the required packages. The first package to install is PyQt5
+    First, assuming you have Python 3.6 or 3.7 installed (NOTE: must add python to PATH, otherwise you won't be able to use python commands in command prompt), you must install all of the required packages. The first package to install is PyQt5
     by calling pip3 install PyQt5.(might have to run pip3.exe under python installation folder for access to pip3 commands)
     Next, you will need the mySQL connector for Python, call pip install mysql-connector-python from a python terminal
 How to use:
