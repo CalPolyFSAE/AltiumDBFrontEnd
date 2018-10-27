@@ -24,6 +24,7 @@ class Table:
         cursor.execute(text)
         results = cursor.fetchall()
         cursor.close()
+        # convert all to strings
         return results
 
     def describeTable(self):
@@ -118,4 +119,3 @@ class Foreign_Key(Column):
         stmt = "{fkName} in ({tmp})".format(fkName=self.getFKeyName(), tmp=tmp)
         results = self.fTable.selectTable(col=columnName, filt=stmt)
         return results
-
