@@ -11,7 +11,7 @@ def main():
     # Creating main connection
     mydb = mysql.connector.connect(
         converter_class=Converter.MyConverter,
-        host="altium.cyyn3lqbjhax.us-east-2.rds.amazonaws.com",
+        host="129.65.26.245",
         user="cpracing",
         passwd="formulasae",
         database="Altium"
